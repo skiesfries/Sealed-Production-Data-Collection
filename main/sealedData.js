@@ -11,9 +11,16 @@ const fs = require('fs');
 
     while (true) 
     {
-        await page.goto('https://www.tcgplayer.com/search/pokemon/product?productLineName=pokemon&page=1=${pageNumber}&view=grid&ProductTypeName=Sealed+Products&inStock=true');
+        await page.goto(`https://www.tcgplayer.com/search/pokemon/product?productLineName=pokemon&page=${pageNumber}&view=grid&ProductTypeName=Sealed+Products&inStock=true`,
+        { waitUntil: 'networkidle0' }
+        );
 
-        await page.waitForSelector('.search-result');
+        try {
+            await page.waitForSelector('.search-result');
+          } catch (error) {
+            console.log('The .search-result selector is not available, stopping script');
+            break;
+          }
 
         const pageData = await page.evaluate(() => 
         {
@@ -23,23 +30,18 @@ const fs = require('fs');
 
             for(const productElement of productElements)
             {
-                const image = productElement.querySelector('.lazy-image__wrapper').src;
+                const src = productElement.querySelector('img[src]').getAttribute('src');
                 const name = productElement.querySelector('.search-result__title').innerText;
                 const setName = productElement.querySelector('.search-result__subtitle').innerText;
                 const price = productElement.querySelector('.inventory__price-with-shipping').innerText;
     
-                products.push({image, name, setName, price});
+                products.push({src, name, setName, price});
             }
             
             return products;
         });
         
         data = data.concat(pageData);
-
-        if(!pageData.length)
-        {
-            break;
-        }
 
         pageNumber++;
     }
