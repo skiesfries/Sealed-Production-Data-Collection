@@ -8,6 +8,7 @@ const fs = require('fs');
 
     let pageNumber = 1;
     let data = [];
+  
 
     while (true) 
     {
@@ -21,34 +22,54 @@ const fs = require('fs');
             console.log('The .search-result selector is not available, stopping script');
             break;
           }
+          // Get the search result products
+        const productElements = await page.$$('.search-result');
 
-        const pageData = await page.evaluate(() => 
+        // Iterate over the search result products
+        for (const productElement of productElements) 
         {
-            const products = [];
             
-            const productElements = document.querySelectorAll('.search-result');
-
-            for(const productElement of productElements)
-            {
+            const productData = await page.evaluate((productElement) => {
                 const src = productElement.querySelector('img[src]').getAttribute('src');
                 const name = productElement.querySelector('.search-result__title').innerText;
                 const setName = productElement.querySelector('.search-result__subtitle').innerText;
                 const price = productElement.querySelector('.inventory__price-with-shipping').innerText;
-    
-                products.push({src, name, setName, price});
-            }
+                return {src,name,setName,price};
+            }, productElement);
             
-            return products;
-        });
-        
-        data = data.concat(pageData);
+            const baseURL = 'https://www.tcgplayer.com';
+            const productURL = await productElement.$eval('a', a => a.getAttribute('href'));
+            const fullURL = baseURL+productURL;
+            
 
+            const productPage = await browser.newPage();
+            await productPage.goto(fullURL);
+            
+            try {
+              await productPage.waitForSelector('ul.product__item-details__attributes li span');
+            } catch (error) {
+              console.log('No product description, going to next product...');
+            }
+
+            const descriptionElement = await productPage.$('ul.product__item-details__attributes li span');
+            let description = '';
+            
+            if (descriptionElement) 
+            {
+            description = await productPage.evaluate(element => element.innerText, descriptionElement);
+            }
+
+            await productPage.close();
+
+            data.push({productData,description});
+        }
         pageNumber++;
     }
-
-    fs.writeFile('products.txt', JSON.stringify(data), (err) => {
+    
+    fs.appendFile('products.txt', JSON.stringify(data) + '\n', (err) => {
         if (err) throw err;
         console.log('The file has been saved');
-    });
+      });
+      
     await browser.close();
 })();
