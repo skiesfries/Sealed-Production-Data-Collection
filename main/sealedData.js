@@ -8,7 +8,7 @@ const fs = require('fs');
 
     let pageNumber = 1;
     let data = [];
-  
+
 
     while (true) 
     {
@@ -28,7 +28,7 @@ const fs = require('fs');
         // Iterate over the search result products
         for (const productElement of productElements) 
         {
-            
+
             const productData = await page.evaluate((productElement) => {
                 const src = productElement.querySelector('img[src]').getAttribute('src');
                 const name = productElement.querySelector('.search-result__title').innerText;
@@ -36,15 +36,15 @@ const fs = require('fs');
                 const price = productElement.querySelector('.inventory__price-with-shipping').innerText;
                 return {src,name,setName,price};
             }, productElement);
-            
+
             const baseURL = 'https://www.tcgplayer.com';
             const productURL = await productElement.$eval('a', a => a.getAttribute('href'));
             const fullURL = baseURL+productURL;
-            
+
 
             const productPage = await browser.newPage();
             await productPage.goto(fullURL);
-            
+
             try {
               await productPage.waitForSelector('ul.product__item-details__attributes li span');
             } catch (error) {
@@ -53,7 +53,7 @@ const fs = require('fs');
 
             const descriptionElement = await productPage.$('ul.product__item-details__attributes li span');
             let description = '';
-            
+
             if (descriptionElement) 
             {
             description = await productPage.evaluate(element => element.innerText, descriptionElement);
@@ -61,15 +61,15 @@ const fs = require('fs');
 
             await productPage.close();
 
-            data.push({productData,description});
+            data.push({...productData,description});
         }
         pageNumber++;
     }
-    
-    fs.appendFile('products.txt', JSON.stringify(data) + '\n', (err) => {
-        if (err) throw err;
-        console.log('The file has been saved');
-      });
-      
+
+    fs.appendFile('products.txt', JSON.stringify(data, null, '\n') + '\n', (err) => {
+      if (err) throw err;
+      console.log('The file has been saved');
+    });
+
     await browser.close();
 })();
