@@ -13,8 +13,11 @@ const fs = require('fs');
     while (true) 
     {
         await page.goto(`https://www.tcgplayer.com/search/pokemon/product?productLineName=pokemon&page=${pageNumber}&view=grid&ProductTypeName=Sealed+Products&inStock=true`,
-        { waitUntil: 'networkidle0' }
-        );
+        { waitUntil: 'networkidle0',
+          headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+          }
+        });
 
         try {
             await page.waitForSelector('.search-result');
@@ -66,7 +69,7 @@ const fs = require('fs');
         pageNumber++;
     }
 
-    fs.appendFile('products.txt', JSON.stringify(data, null, '\n') + '\n', (err) => {
+    fs.writeFile('products.json', JSON.stringify(data), (err) => {
       if (err) throw err;
       console.log('The file has been saved');
     });
